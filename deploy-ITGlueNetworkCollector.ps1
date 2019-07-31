@@ -39,7 +39,7 @@ function Start-MSIInstall {
 $logfile = "NetworkGlueCollector.msi.log"
     checkLogfile
 
-
+# test test test branch
     $location = Get-Location
     Write-Host $location.Path
 }

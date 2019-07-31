@@ -5,6 +5,11 @@
 # > offline Installer unter https://support.microsoft.com/de-de/help/2901907/microsoft-net-framework-4-5-2-offline-installer-for-windows-server-201
 # https://kb.itglue.com/hc/en-us/articles/360026301251-Guide-to-successful-Network-Glue-deployment
 
+# Installer NetworkGlue...
+# https://s3.amazonaws.com/networkdetective/download/NetworkGlueCollector.msi
+
+# 2019/31/07 Added check of logfile and automated installation .NET452 if required
+# 2019/31/07 Changed download of MSI - no directly through powershell, not anymore with the datto rmm component
 
 # Component needs parameters
 # ITGLUECOLLECTORKEY
@@ -12,6 +17,8 @@
 
 $itglueCollectorkey     = $env:ITGLUECOLLECTORKEY
 $itglueNetworkcollector = "NetworkGlueCollector.msi"
+
+New-Variable -Name binpath -Option AllScope 
 
 function Main {
     Start-MSIInstall $itglueNetworkcollector
@@ -23,20 +30,23 @@ function Start-MSIInstall {
         $filename = $args[0]
     )
  
+
+Get-GlueNetworkInstaller
+write-host $binpath
     Write-Host $filename
     $DataStamp = get-date -Format yyyyMMddTHHmmss
     $logFile = '{0}-{1}.log' -f $filename,$DataStamp
     Write-Host $logFile
     $MSIArguments = @(
         "/i"
-        ('"{0}"' -f $filename)
+        ('"{0}"' -f $binpath)
         "/qn"
         "/norestart"
         "/L*v"
         $logFile
     )
-    Start-Process "msiexec.exe" -ArgumentList $MSIArguments -Wait -NoNewWindow 
-$logfile = "NetworkGlueCollector.msi.log"
+    Start-Process "msiexec.exe" -ArgumentList $MSIArguments -Wait -NoNewWindow
+#$logfile = "NetworkGlueCollector.msi.log"
     checkLogfile
 
 # test test test branch
@@ -66,6 +76,23 @@ function checkLogfile {
 
 }
 
+
+
+function Get-GlueNetworkInstaller {
+
+    $SourceURI = "https://s3.amazonaws.com/networkdetective/download/NetworkGlueCollector.msi"
+    $FileName = $SourceURI.Split('/')[-1]
+    $BinPath = Join-Path $env:SystemRoot -ChildPath "Temp\$FileName"
+
+    if (!(Test-Path $BinPath))
+    {
+        Invoke-Webrequest -Uri $SourceURI -OutFile $BinPath
+    }
+    Write-Host $FileName
+    Write-Host $BinPath
+
+
+}
 
 
 function Install-NET452 {
